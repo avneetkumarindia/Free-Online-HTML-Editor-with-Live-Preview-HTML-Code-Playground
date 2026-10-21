@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <title>HTML Code Editor — Live Playground</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #0b0e14;
+      --panel: #12161f;
+      --panel-2: #0f131b;
+      --border: #232a38;
+      --text: #e6ebf5;
+      --muted: #8b95a8;
+      --accent: #5b8cff;
+      --accent-2: #a855f7;
+      --ig1: #f9ce34;
+      --ig2: #ee2a7b;
+      --ig3: #6228d7;
+      --code-size: 13px;
+      --code-lh: 1.65;
+      --radius: 14px;
+      --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    html { height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      background:
+        radial-gradient(1100px 600px at 12% -12%, rgba(91,140,255,.13), transparent 60%),
+        radial-gradient(900px 520px at 92% 0%, rgba(168,85,247,.12), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    @media (min-width: 861px) {
+      body { height: 100%; overflow: hidden; }
+    }
+
+    /* ---------------- HEADER ---------------- */
+    .app-header {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 42px; height: 42px;
+      flex: 0 0 auto;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: 700 15px/1 var(--mono);
+      letter-spacing: -1px;
+      box-shadow: 0 8px 22px rgba(91,140,255,.35);
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: .2px;
+      font-weight: 700;
+    }
+    .brand-text p {
+      margin: 2px 0 0;
+      font-size: .74rem;
+      color: var(--muted);
+      letter-spacing: .3px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      -webkit-appearance: none;
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 15px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      font: 600 .82rem/1 var(--font);
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background .18s ease, border-color .18s ease, transform .12s ease, box-shadow .18s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover { background: rgba(255,255,255,.08); border-color: #2f394c; }
+    .btn:active { transform: translateY(1px) scale(.99); }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
+
+    .btn-primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(91,140,255,.32);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #6b98ff, #b46bf8);
+      box-shadow: 0 10px 26px rgba(91,140,255,.45);
+    }
+
+    /* ---------------- WORKSPACE ---------------- */
+    .workspace {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: stretch;
+      padding: 0 16px 16px;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+
+    .editor-panel  { flex: var(--split, 50) 1 0; }
+    .preview-panel { flex: calc(100 - var(--split, 50)) 1 0; }
+
+    .panel-head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 14px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+      font-size: .75rem;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .dots { display: flex; gap: 6px; margin-right: 4px; }
+    .dots i { width: 9px; height: 9px; border-radius: 50%; display: block; opacity: .8; }
+    .dots i:nth-child(1) { background: #ff5f57; }
+    .dots i:nth-child(2) { background: #febc2e; }
+    .dots i:nth-child(3) { background: #28c840; }
+
+    .panel-head .left { display: flex; align-items: center; gap: 10px; }
+
+    .live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .68rem;
+      color: #63e6a0;
+      letter-spacing: .5px;
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #63e6a0;
+      box-shadow: 0 0 0 0 rgba(99,230,160,.6);
+    }
+    .live-dot.pulse { animation: pulse .55s ease-out; }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(99,230,160,.65); }
+      100% { box-shadow: 0 0 0 9px rgba(99,230,160,0); }
+    }
+
+    /* Editor */
+    .editor-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    .gutter {
+      flex: 0 0 auto;
+      padding: 14px 10px 14px 12px;
+      text-align: right;
+      font-family: var(--mono);
+      font-size: var(--code-size);
+      line-height: var(--code-lh);
+      color: #3f4a5e;
+      background: var(--panel-2);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      white-space: pre;
+    }
+
+    #code {
+      flex: 1 1 auto;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      resize: none;
+      padding: 14px 16px;
+      background: transparent;
+      color: var(--text);
+      caret-color: var(--accent);
+      font-family: var(--mono);
+      font-size: var(--code-size);
+      line-height: var(--code-lh);
+      white-space: pre;
+      overflow: auto;
+      tab-size: 2;
+      -moz-tab-size: 2;
+      -webkit-text-fill-color: var(--text);
+    }
+    #code::selection { background: rgba(91,140,255,.35); }
+    #code::-webkit-scrollbar,
+    .gutter::-webkit-scrollbar { width: 10px; height: 10px; }
+    #code::-webkit-scrollbar-thumb {
+      background: #2b3444; border-radius: 99px; border: 2px solid var(--panel);
+    }
+    #code::-webkit-scrollbar-thumb:hover { background: #3a465c; }
+
+    /* ---------------- PREVIEW TOOLBAR (NEW) ---------------- */
+    .preview-toolbar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .mode-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+
+    .mode-btn {
+      -webkit-appearance: none;
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 9px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font: 600 .72rem/1 var(--font);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }
+    .mode-btn:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    .mode-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .mode-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 4px 12px rgba(91,140,255,.32);
+    }
+
+    .preview-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0;
+      transition: background .16s ease, border-color .16s ease, transform .12s ease, color .16s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-icon svg { width: 15px; height: 15px; }
+    .btn-icon:hover { background: rgba(255,255,255,.09); border-color: #2f394c; }
+    .btn-icon:active { transform: translateY(1px) scale(.98); }
+    .btn-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn-icon.btn-run {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 4px 12px rgba(91,140,255,.32);
+    }
+    .btn-icon.btn-run:hover {
+      background: linear-gradient(135deg, #6b98ff, #b46bf8);
+      box-shadow: 0 6px 16px rgba(91,140,255,.45);
+    }
+
+    .btn-icon .icon-exit { display: none; }
+    .preview-panel.fullscreen .btn-icon .icon-enter { display: none; }
+    .preview-panel.fullscreen .btn-icon .icon-exit { display: block; }
+
+    /* ---------------- PREVIEW STAGE (NEW) ---------------- */
+    .preview-stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      background-color: var(--panel-2);
+      background-image:
+        linear-gradient(45deg, rgba(255,255,255,.025) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,.025) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,.025) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,.025) 75%);
+      background-size: 18px 18px;
+      background-position: 0 0, 0 9px, 9px -9px, -9px 0px;
+    }
+
+    .preview-inner {
+      position: absolute;
+      inset: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .device-frame {
+      position: relative;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: #fff;
+      transform-origin: center center;
+      transition: transform .35s cubic-bezier(.2,.8,.2,1),
+                  width .35s cubic-bezier(.2,.8,.2,1),
+                  height .35s cubic-bezier(.2,.8,.2,1),
+                  border-radius .35s ease,
+                  padding .35s ease,
+                  background .35s ease,
+                  box-shadow .35s ease;
+    }
+
+    .device-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+
+    /* Responsive mode — fills the available panel */
+    .device-frame.mode-responsive {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    }
+    .device-frame.mode-responsive iframe { border-radius: 8px; }
+
+    /* Mobile mode — 390px viewport */
+    .device-frame.mode-mobile {
+      width: 406px;   /* 390 + 8px bezel each side */
+      height: 816px;  /* 800 + 8px bezel each side */
+      padding: 8px;
+      border-radius: 44px;
+      background: #05070b;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 0 0 2px rgba(0,0,0,.5),
+        0 30px 60px rgba(0,0,0,.6);
+    }
+    .device-frame.mode-mobile iframe { border-radius: 36px; }
+
+    /* Tablet mode — 768px viewport */
+    .device-frame.mode-tablet {
+      width: 788px;   /* 768 + 10px bezel each side */
+      height: 1044px; /* 1024 + 10px bezel each side */
+      padding: 10px;
+      border-radius: 30px;
+      background: #05070b;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 0 0 2px rgba(0,0,0,.5),
+        0 30px 60px rgba(0,0,0,.6);
+    }
+    .device-frame.mode-tablet iframe { border-radius: 20px; }
+
+    /* Desktop mode — 1440px viewport */
+    .device-frame.mode-desktop {
+      width: 1440px;
+      height: 900px;
+      padding: 0;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow:
+        0 0 0 1px var(--border),
+        0 30px 60px rgba(0,0,0,.6);
+    }
+    .device-frame.mode-desktop iframe { border-radius: 10px; }
+
+    /* Full-screen preview mode */
+    .preview-panel.fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+    }
+    .preview-panel.fullscreen .preview-inner { inset: 20px; }
+
+    /* Small decorative dot indicators on device frames */
+    .device-frame.mode-mobile::before,
+    .device-frame.mode-tablet::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 34%;
+      height: 6px;
+      background: rgba(255,255,255,.06);
+      border-radius: 3px;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    /* Splitter */
+    .splitter {
+      flex: 0 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: col-resize;
+      touch-action: none;
+    }
+    .splitter::before {
+      content: "";
+      width: 4px;
+      height: 46px;
+      border-radius: 99px;
+      background: var(--border);
+      transition: background .2s ease, height .2s ease;
+    }
+    .splitter:hover::before,
+    .splitter.active::before { background: var(--accent); height: 74px; }
+
+    /* ---------------- FOOTER ---------------- */
+    .site-footer {
+      flex: 0 0 auto;
+      padding: 14px 16px 16px;
+      border-top: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.028), rgba(255,255,255,0));
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .footer-inner {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .credit {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: .85rem;
+      color: var(--muted);
+      letter-spacing: .2px;
+    }
+    .credit .heart {
+      color: #ff5b7f;
+      animation: beat 1.8s ease-in-out infinite;
+      display: inline-block;
+    }
+    @keyframes beat {
+      0%, 100% { transform: scale(1); }
+      18%      { transform: scale(1.22); }
+      36%      { transform: scale(1); }
+    }
+    .credit strong {
+      color: var(--text);
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .ig-link {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 18px 9px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.045);
+      color: var(--text);
+      font-size: .84rem;
+      font-weight: 600;
+      letter-spacing: .2px;
+      text-decoration: none;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform .22s ease, box-shadow .28s ease, border-color .22s ease, color .22s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ig-link::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, var(--ig1), var(--ig2) 50%, var(--ig3));
+      opacity: 0;
+      transition: opacity .28s ease;
+      z-index: 0;
+    }
+    .ig-link > * { position: relative; z-index: 1; }
+    .ig-link:hover,
+    .ig-link:focus-visible {
+      color: #fff;
+      border-color: transparent;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(238,42,123,.38);
+      outline: none;
+    }
+    .ig-link:hover::before,
+    .ig-link:focus-visible::before { opacity: 1; }
+    .ig-link:active { transform: translateY(0) scale(.985); }
+    .ig-link svg { width: 19px; height: 19px; flex: 0 0 auto; transition: transform .3s ease; }
+    .ig-link:hover svg { transform: rotate(-8deg) scale(1.1); }
+
+    /* ---------------- MODAL ---------------- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(5, 7, 12, .72);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .modal-backdrop[hidden] { display: none !important; }
+    .modal-backdrop.show { opacity: 1; }
+
+    .modal {
+      width: 100%;
+      max-width: 400px;
+      padding: 26px 24px 22px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #171c27, #111520);
+      box-shadow: 0 30px 80px rgba(0,0,0,.65);
+      text-align: center;
+      transform: translateY(14px) scale(.96);
+      opacity: 0;
+      transition: transform .26s cubic-bezier(.2,.9,.3,1.2), opacity .22s ease;
+    }
+    .modal-backdrop.show .modal { transform: translateY(0) scale(1); opacity: 1; }
+
+    .modal-icon {
+      width: 58px; height: 58px;
+      margin: 0 auto 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(45deg, var(--ig1), var(--ig2) 55%, var(--ig3));
+      box-shadow: 0 14px 34px rgba(238,42,123,.4);
+    }
+    .modal-icon svg { width: 30px; height: 30px; }
+
+    .modal h2 {
+      margin: 0 0 8px;
+      font-size: 1.12rem;
+      letter-spacing: .2px;
+    }
+    .modal p {
+      margin: 0 0 20px;
+      font-size: .9rem;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .modal p strong { color: var(--text); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .modal-actions .btn {
+      flex: 1 1 0;
+      justify-content: center;
+      padding: 12px 14px;
+      font-size: .86rem;
+    }
+    .btn-ig {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(45deg, var(--ig1), var(--ig2) 55%, var(--ig3));
+      box-shadow: 0 10px 26px rgba(238,42,123,.35);
+    }
+    .btn-ig:hover {
+      background: linear-gradient(45deg, #ffd94d, #ff3f8d 55%, #7a37f0);
+      box-shadow: 0 14px 32px rgba(238,42,123,.5);
+    }
+
+    /* ---------------- TOAST (NEW) ---------------- */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(24px);
+      background: rgba(20, 26, 38, .98);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: .85rem;
+      line-height: 1.5;
+      max-width: min(90vw, 420px);
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      z-index: 1100;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .25s ease, transform .25s ease, visibility .25s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ---------------- RESPONSIVE ---------------- */
+    @media (max-width: 860px) {
+      :root { --code-size: 16px; }
+
+      .app-header { padding: 10px 12px; gap: 10px; }
+      .brand-mark { width: 38px; height: 38px; font-size: 13px; }
+      .brand-text h1 { font-size: .98rem; }
+      .brand-text p { display: none; }
+
+      .toolbar { width: 100%; justify-content: space-between; }
+      .btn { flex: 1 1 auto; justify-content: center; padding: 10px 12px; font-size: .78rem; }
+
+      .workspace {
+        flex-direction: column;
+        padding: 0 12px 12px;
+        gap: 12px;
+      }
+      .splitter { display: none; }
+      .editor-panel,
+      .preview-panel {
+        flex: 0 0 auto;
+        height: 52vh;
+        min-height: 320px;
+      }
+
+      .site-footer { padding: 14px 12px calc(16px + env(safe-area-inset-bottom)); }
+      .footer-inner { flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+      .ig-link { width: 100%; max-width: 340px; justify-content: center; }
+    }
+
+    @media (max-width: 640px) {
+      /* Hide mode labels to prevent overflow on small screens */
+      .mode-btn span { display: none; }
+      .mode-btn { padding: 7px 9px; }
+      .mode-btn svg { width: 15px; height: 15px; }
+    }
+
+    @media (max-width: 560px) {
+      .btn span { display: none; }
+      .btn { padding: 11px; }
+      .btn svg { width: 17px; height: 17px; }
+
+      .preview-toolbar { gap: 6px; padding: 6px 8px; }
+      .preview-actions { gap: 4px; }
+      .btn-icon { width: 30px; height: 30px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= HEADER ================= -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">&lt;/&gt;</span>
+      <div class="brand-text">
+        <h1>HTML Code Editor</h1>
+        <p>Write · Preview · Download</p>
+      </div>
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="Editor controls">
+      <label class="btn" for="fileInput" title="Open an HTML file" aria-label="Open an HTML file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span>Open</span>
+      </label>
+      <input id="fileInput" type="file" accept=".html,.htm,text/html" hidden>
+
+      <button class="btn" id="btnDownload" type="button" title="Download the code as an HTML file" aria-label="Download the code as an HTML file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span>Download</span>
+      </button>
+
+      <button class="btn" id="btnClear" type="button" title="Clear the editor" aria-label="Clear the editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+        </svg>
+        <span>Clear</span>
+      </button>
+
+      <button class="btn" id="btnReset" type="button" title="Restore the starter template" aria-label="Restore the starter template">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/>
+          <polyline points="3 3 3 8 8 8"/>
+        </svg>
+        <span>Reset</span>
+      </button>
+
+      <button class="btn btn-primary" id="btnRun" type="button" title="Run now (Ctrl/Cmd + Enter)" aria-label="Run the code now">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <polygon points="6 3 20 12 6 21 6 3"/>
+        </svg>
+        <span>Run</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= WORKSPACE ================= -->
+  <main class="workspace" id="workspace">
+    <section class="panel editor-panel" aria-label="HTML code editor">
+      <div class="panel-head">
+        <div class="left">
+          <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>index.html</span>
+        </div>
+        <span>HTML</span>
+      </div>
+      <div class="editor-wrap">
+        <div class="gutter" id="gutter" aria-hidden="true">1</div>
+        <textarea
+          id="code"
+          spellcheck="false"
+          autocapitalize="off"
+          autocorrect="off"
+          autocomplete="off"
+          wrap="off"
+          aria-label="HTML source code"></textarea>
+      </div>
+    </section>
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panels" tabindex="-1"></div>
+
+    <section class="panel preview-panel" id="previewPanel" aria-label="Live preview">
+      <div class="panel-head">
+        <div class="left">
+          <span>Live Preview</span>
+        </div>
+        <span class="live"><span class="live-dot" id="liveDot"></span>LIVE</span>
+      </div>
+
+      <!-- ===== NEW: Preview toolbar ===== -->
+      <div class="preview-toolbar" role="toolbar" aria-label="Preview controls">
+        <div class="mode-selector" role="group" aria-label="Preview device mode">
+          <button class="mode-btn active" type="button" data-mode="responsive" aria-pressed="true" title="Responsive — fit to panel" aria-label="Responsive preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 3 21 3 21 9"/>
+              <polyline points="9 21 3 21 3 15"/>
+              <line x1="21" y1="3" x2="14" y2="10"/>
+              <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+            <span>Responsive</span>
+          </button>
+          <button class="mode-btn" type="button" data-mode="mobile" aria-pressed="false" title="Mobile — 390px viewport" aria-label="Mobile preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="6" y="2" width="12" height="20" rx="2.5"/>
+              <line x1="11" y1="18" x2="13" y2="18"/>
+            </svg>
+            <span>Mobile</span>
+          </button>
+          <button class="mode-btn" type="button" data-mode="tablet" aria-pressed="false" title="Tablet — 768px viewport" aria-label="Tablet preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2.5"/>
+              <line x1="11" y1="18" x2="13" y2="18"/>
+            </svg>
+            <span>Tablet</span>
+          </button>
+          <button class="mode-btn" type="button" data-mode="desktop" aria-pressed="false" title="Desktop — 1440px viewport" aria-label="Desktop preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            <span>Desktop</span>
+          </button>
+        </div>
+
+        <div class="preview-actions">
+          <button class="btn-icon btn-run" id="btnPreviewRun" type="button" title="Run now" aria-label="Run the code now">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <polygon points="6 3 20 12 6 21 6 3"/>
+            </svg>
+          </button>
+          <button class="btn-icon" id="btnRefresh" type="button" title="Refresh preview" aria-label="Refresh preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+          <button class="btn-icon" id="btnFullscreen" type="button" title="Full-screen preview" aria-label="Toggle full-screen preview" aria-pressed="false">
+            <svg class="icon-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+              <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+              <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+              <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+            </svg>
+            <svg class="icon-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+              <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
+              <path d="M3 16h3a2 2 0 0 1 2 2v3"/>
+              <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+            </svg>
+          </button>
+          <button class="btn-icon" id="btnPopout" type="button" title="Open preview in new tab" aria-label="Open preview in new tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== NEW: Preview stage with device frame ===== -->
+      <div class="preview-stage" id="previewStage">
+        <div class="preview-inner" id="previewInner">
+          <div class="device-frame mode-responsive" id="deviceFrame">
+            <iframe id="preview" title="Live HTML preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-pointer-lock"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="credit">
+        <span class="heart" aria-hidden="true">♥</span>
+        <span>Made by <strong>Avneet.kumar</strong></span>
+      </div>
+
+      <a class="ig-link ig-trigger"
+         href="https://www.instagram.com/avneetkumar.corporate/"
+         id="igLink"
+         aria-label="Visit Avneet.kumar on Instagram (opens confirmation)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="url(#igGradA)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <defs>
+            <linearGradient id="igGradA" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stop-color="#f9ce34"/>
+              <stop offset="50%" stop-color="#ee2a7b"/>
+              <stop offset="100%" stop-color="#6228d7"/>
+            </linearGradient>
+          </defs>
+          <rect x="3" y="3" width="18" height="18" rx="5.2"/>
+          <circle cx="12" cy="12" r="4.1"/>
+          <circle cx="17.3" cy="6.7" r="1.15" fill="url(#igGradA)" stroke="none"/>
+        </svg>
+        <span>@avneetkumar.corporate</span>
+      </a>
+    </div>
+  </footer>
+
+  <!-- ================= CONFIRMATION MODAL ================= -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+      <div class="modal-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5.2"/>
+          <circle cx="12" cy="12" r="4.1"/>
+          <circle cx="17.3" cy="6.7" r="1.15" fill="#ffffff" stroke="none"/>
+        </svg>
+      </div>
+      <h2 id="modalTitle">Leaving the editor</h2>
+      <p id="modalDesc">Are you sure you want to visit <strong>Avneet.kumar</strong> on Instagram?</p>
+      <div class="modal-actions">
+        <button class="btn" id="modalCancel" type="button">Cancel</button>
+        <a class="btn btn-ig" id="modalConfirm"
+           href="https://www.instagram.com/avneetkumar.corporate/"
+           target="_blank" rel="noopener noreferrer">Yes, Visit Instagram</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST (NEW) ================= -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- Elements ---------------- */
+  var editor    = document.getElementById("code");
+  var preview   = document.getElementById("preview");
+  var gutter    = document.getElementById("gutter");
+  var liveDot   = document.getElementById("liveDot");
+  var workspace = document.getElementById("workspace");
+  var splitter  = document.getElementById("splitter");
+  var fileInput = document.getElementById("fileInput");
+
+  var btnRun      = document.getElementById("btnRun");
+  var btnClear    = document.getElementById("btnClear");
+  var btnReset    = document.getElementById("btnReset");
+  var btnDownload = document.getElementById("btnDownload");
+
+  var igLink    = document.getElementById("igLink");
+  var backdrop  = document.getElementById("modalBackdrop");
+  var modalConfirm = document.getElementById("modalConfirm");
+  var modalCancel  = document.getElementById("modalCancel");
+
+  /* --- New preview elements --- */
+  var previewPanel  = document.getElementById("previewPanel");
+  var previewStage  = document.getElementById("previewStage");
+  var previewInner  = document.getElementById("previewInner");
+  var deviceFrame   = document.getElementById("deviceFrame");
+  var modeButtons   = document.querySelectorAll(".mode-btn");
+  var btnPreviewRun = document.getElementById("btnPreviewRun");
+  var btnRefresh    = document.getElementById("btnRefresh");
+  var btnFullscreen = document.getElementById("btnFullscreen");
+  var btnPopout     = document.getElementById("btnPopout");
+  var toast         = document.getElementById("toast");
+
+  var IG_URL = "https://www.instagram.com/avneetkumar.corporate/";
+
+  /* ---------------- Starter template ---------------- */
+  var DEFAULT_CODE = [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '  <meta charset="UTF-8" />',
+    '  <meta name="viewport" content="width=device-width, initial-scale=1" />',
+    '  <title>My Page</title>',
+    '  <style>',
+    '    * { box-sizing: border-box; }',
+    '    body {',
+    '      margin: 0;',
+    '      min-height: 100vh;',
+    '      display: grid;',
+    '      place-items: center;',
+    '      padding: 24px;',
+    '      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;',
+    '      background: radial-gradient(circle at 30% 20%, #1f2a44, #0b0e14 72%);',
+    '      color: #e8ecf6;',
+    '    }',
+    '    .card {',
+    '      width: 100%;',
+    '      max-width: 420px;',
+    '      padding: 34px 28px;',
+    '      text-align: center;',
+    '      border-radius: 20px;',
+    '      border: 1px solid rgba(255,255,255,.13);',
+    '      background: rgba(255,255,255,.06);',
+    '      backdrop-filter: blur(12px);',
+    '      box-shadow: 0 26px 60px rgba(0,0,0,.5);',
+    '    }',
+    '    h1 { margin: 0 0 10px; font-size: 1.6rem; }',
+    '    p  { margin: 0 0 22px; color: #a9b3c8; line-height: 1.6; }',
+    '    button {',
+    '      border: 0;',
+    '      cursor: pointer;',
+    '      padding: 13px 26px;',
+    '      border-radius: 999px;',
+    '      font-size: 1rem;',
+    '      font-weight: 600;',
+    '      color: #fff;',
+    '      background: linear-gradient(135deg, #5b8cff, #a855f7);',
+    '      transition: transform .2s ease, box-shadow .2s ease;',
+    '    }',
+    '    button:hover {',
+    '      transform: translateY(-2px);',
+    '      box-shadow: 0 12px 26px rgba(91,140,255,.45);',
+    '    }',
+    '    #count { display: block; margin-top: 16px; font-size: .9rem; color: #8b95a8; }',
+    '  </style>',
+    '</head>',
+    '<body>',
+    '  <div class="card">',
+    '    <h1>Hello, world! 👋</h1>',
+    '    <p>Edit the code on the left and watch this preview update instantly.</p>',
+    '    <button id="btn">Click me</button>',
+    '    <span id="count">Clicks: 0</span>',
+    '  </div>',
+    '',
+    '  <script>',
+    '    let n = 0;',
+    '    const count = document.getElementById("count");',
+    '    document.getElementById("btn").addEventListener("click", () => {',
+    '      n++;',
+    '      count.textContent = "Clicks: " + n;',
+    '    });',
+    '  <\/script>',
+    '</body>',
+    '</html>'
+  ].join("\n");
+
+  var EMPTY_PREVIEW =
+    '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<style>' +
+    'html,body{height:100%;margin:0}' +
+    'body{display:grid;place-items:center;background:#f5f7fb;' +
+    'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#94a3b8;text-align:center;padding:20px}' +
+    '.box{max-width:300px}svg{opacity:.45;margin-bottom:14px}' +
+    'p{margin:0;font-size:.92rem;line-height:1.6}' +
+    '</style></head><body><div class="box">' +
+    '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.6" ' +
+    'stroke-linecap="round" stroke-linejoin="round">' +
+    '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
+    '<p>Your preview will appear here.<br>Start typing HTML in the editor.</p>' +
+    '</div></body></html>';
+
+  /* ---------------- Rendering ---------------- */
+  var renderTimer = null;
+  var pulseTimer  = null;
+
+  function pulseLiveDot() {
+    liveDot.classList.remove("pulse");
+    void liveDot.offsetWidth;
+    liveDot.classList.add("pulse");
+    clearTimeout(pulseTimer);
+    pulseTimer = setTimeout(function () { liveDot.classList.remove("pulse"); }, 700);
+  }
+
+  function paintPreview() {
+    var code = editor.value;
+    preview.srcdoc = code.trim() ? code : EMPTY_PREVIEW;
+    pulseLiveDot();
+  }
+
+  function scheduleRender() {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(paintPreview, 220);
+  }
+
+  function updateGutter() {
+    var lines = editor.value.split("\n").length;
+    var out = "";
+    for (var i = 1; i <= lines; i++) {
+      out += i + (i < lines ? "\n" : "");
+    }
+    gutter.textContent = out;
+    gutter.scrollTop = editor.scrollTop;
+  }
+
+  function refresh() {
+    updateGutter();
+    paintPreview();
+  }
+
+  /* ---------------- Preview device mode (NEW) ---------------- */
+  var currentMode = "responsive";
+
+  var VALID_MODES = { responsive: 1, mobile: 1, tablet: 1, desktop: 1 };
+
+  function loadSavedMode() {
+    try {
+      var saved = localStorage.getItem("previewMode");
+      if (saved && VALID_MODES[saved]) return saved;
+    } catch (e) { /* ignore */ }
+    return "responsive";
+  }
+
+  function saveMode(mode) {
+    try { localStorage.setItem("previewMode", mode); } catch (e) { /* ignore */ }
+  }
+
+  var sizeRafId = null;
+  function scheduleApplyPreviewSize() {
+    if (sizeRafId) return;
+    sizeRafId = requestAnimationFrame(function () {
+      sizeRafId = null;
+      applyPreviewSize();
+    });
+  }
+
+  function applyPreviewSize() {
+    var availW = previewInner.clientWidth;
+    var availH = previewInner.clientHeight;
+
+    if (availW <= 0 || availH <= 0) return;
+
+    if (currentMode === "responsive") {
+      deviceFrame.style.transform = "";
+      return;
+    }
+
+    // offsetWidth/offsetHeight include padding due to border-box
+    var frameW = deviceFrame.offsetWidth;
+    var frameH = deviceFrame.offsetHeight;
+
+    if (frameW === 0 || frameH === 0) return;
+
+    var scale = Math.min(1, availW / frameW, availH / frameH);
+    deviceFrame.style.transform = scale < 1 ? "scale(" + scale + ")" : "";
+  }
+
+  function setMode(mode) {
+    if (!VALID_MODES[mode]) mode = "responsive";
+    currentMode = mode;
+
+    // Update buttons
+    for (var i = 0; i < modeButtons.length; i++) {
+      var b = modeButtons[i];
+      var isActive = b.getAttribute("data-mode") === mode;
+      b.classList.toggle("active", isActive);
+      b.setAttribute("aria-pressed", isActive ? "true" : "false");
+    }
+
+    // Update frame classes
+    deviceFrame.className = "device-frame mode-" + mode;
+
+    // Recompute visual scale
+    scheduleApplyPreviewSize();
+
+    // Persist preference
+    saveMode(mode);
+  }
+
+  /* ---------------- Full-screen preview (NEW) ---------------- */
+  function isFullscreen() {
+    return previewPanel.classList.contains("fullscreen");
+  }
+
+  function enterFullscreen() {
+    previewPanel.classList.add("fullscreen");
+    btnFullscreen.setAttribute("aria-pressed", "true");
+    btnFullscreen.setAttribute("aria-label", "Exit full-screen preview");
+    btnFullscreen.setAttribute("title", "Exit full-screen preview");
+    // Lock scroll on body
+    document.body.style.overflow = "hidden";
+    scheduleApplyPreviewSize();
+  }
+
+  function exitFullscreen() {
+    previewPanel.classList.remove("fullscreen");
+    btnFullscreen.setAttribute("aria-pressed", "false");
+    btnFullscreen.setAttribute("aria-label", "Toggle full-screen preview");
+    btnFullscreen.setAttribute("title", "Full-screen preview");
+    document.body.style.overflow = "";
+    scheduleApplyPreviewSize();
+  }
+
+  function toggleFullscreen() {
+    if (isFullscreen()) exitFullscreen();
+    else enterFullscreen();
+  }
+
+  /* ---------------- Toast (NEW) ---------------- */
+  var toastTimer = null;
+
+  function showToast(message, duration) {
+    duration = duration || 4200;
+    toast.textContent = message;
+    // Add class on next frame so the transition reliably plays
+    requestAnimationFrame(function () {
+      toast.classList.add("show");
+    });
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      toast.classList.remove("show");
+    }, duration);
+  }
+
+  /* ---------------- Pop-out preview (NEW) ---------------- */
+  function popoutPreview() {
+    var code = editor.value.trim() ? editor.value : EMPTY_PREVIEW;
+    var blob = new Blob([code], { type: "text/html;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+
+    var win = null;
+    try {
+      win = window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      win = null;
+    }
+
+    // Detect blocked pop-up
+    if (!win) {
+      URL.revokeObjectURL(url);
+      showToast("Pop-up blocked. Please allow pop-ups for this site in your browser settings, then try again.", 6500);
+      return;
+    }
+
+    // Revoke the URL after the tab has had a chance to load it
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  /* ---------------- Editor events ---------------- */
+  editor.addEventListener("input", function () {
+    updateGutter();
+    scheduleRender();
+  });
+
+  editor.addEventListener("scroll", function () {
+    gutter.scrollTop = editor.scrollTop;
+  });
+
+  editor.addEventListener("keydown", function (e) {
+    /* Tab = two spaces */
+    if (e.key === "Tab" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      var start = editor.selectionStart;
+      var end   = editor.selectionEnd;
+
+      if (start !== end && editor.value.slice(start, end).indexOf("\n") !== -1) {
+        var before = editor.value.slice(0, start);
+        var sel    = editor.value.slice(start, end);
+        var after  = editor.value.slice(end);
+        var lines  = sel.split("\n");
+
+        lines = e.shiftKey
+          ? lines.map(function (l) { return l.replace(/^ {1,2}/, ""); })
+          : lines.map(function (l) { return "  " + l; });
+
+        var newSel = lines.join("\n");
+        editor.value = before + newSel + after;
+        editor.selectionStart = start;
+        editor.selectionEnd = start + newSel.length;
+      } else {
+        editor.setRangeText("  ", start, end, "end");
+      }
+      updateGutter();
+      scheduleRender();
+      return;
+    }
+
+    /* Ctrl / Cmd + Enter = run */
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      clearTimeout(renderTimer);
+      refresh();
+    }
+  });
+
+  /* ---------------- Toolbar actions ---------------- */
+  btnRun.addEventListener("click", function () {
+    clearTimeout(renderTimer);
+    refresh();
+  });
+
+  btnClear.addEventListener("click", function () {
+    editor.value = "";
+    refresh();
+    editor.focus();
+  });
+
+  btnReset.addEventListener("click", function () {
+    editor.value = DEFAULT_CODE;
+    refresh();
+    editor.focus();
+  });
+
+  fileInput.addEventListener("change", function () {
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      editor.value = String(ev.target.result || "");
+      refresh();
+    };
+    reader.readAsText(file);
+    fileInput.value = "";
+  });
+
+  /* ---------------- Download the code ---------------- */
+  function buildFileName() {
+    var d = new Date();
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    return "index-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+           "-" + pad(d.getHours()) + pad(d.getMinutes()) + ".html";
+  }
+
+  function downloadCode() {
+    var code = editor.value;
+    if (!code.trim()) code = EMPTY_PREVIEW;
+
+    var blob = new Blob([code], { type: "text/html;charset=utf-8" });
+    var fileName = buildFileName();
+
+    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+      window.navigator.msSaveOrOpenBlob(blob, fileName);
+      return;
+    }
+
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+
+    if ("download" in a) {
+      a.href = url;
+      a.download = fileName;
+      a.rel = "noopener";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    } else {
+      var reader = new FileReader();
+      reader.onload = function () {
+        window.open(reader.result, "_blank");
+        URL.revokeObjectURL(url);
+      };
+      reader.readAsDataURL(blob);
+    }
+  }
+
+  btnDownload.addEventListener("click", downloadCode);
+
+  /* ---------------- New preview toolbar actions ---------------- */
+
+  // Mode buttons
+  for (var m = 0; m < modeButtons.length; m++) {
+    (function (btn) {
+      btn.addEventListener("click", function () {
+        setMode(btn.getAttribute("data-mode"));
+      });
+    })(modeButtons[m]);
+  }
+
+  // Run (preview toolbar)
+  btnPreviewRun.addEventListener("click", function () {
+    clearTimeout(renderTimer);
+    refresh();
+  });
+
+  // Refresh — force a full reload of the current preview without touching the editor
+  btnRefresh.addEventListener("click", function () {
+    clearTimeout(renderTimer);
+    var code = editor.value.trim() ? editor.value : EMPTY_PREVIEW;
+    // Clear first so re-assigning the same srcdoc will always trigger a reload
+    preview.srcdoc = "";
+    requestAnimationFrame(function () {
+      preview.srcdoc = code;
+      pulseLiveDot();
+    });
+  });
+
+  // Fullscreen toggle
+  btnFullscreen.addEventListener("click", toggleFullscreen);
+
+  // Pop-out
+  btnPopout.addEventListener("click", popoutPreview);
+
+  // Escape exits full-screen (but let the modal handle it when open)
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && isFullscreen()) {
+      if (!backdrop.hidden) return; // modal open — modal will handle Escape itself
+      e.preventDefault();
+      exitFullscreen();
+    }
+  });
+
+  /* ---------------- Resize handling (NEW) ---------------- */
+  // Keep the preview scaled correctly whenever the layout changes
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () {
+      scheduleApplyPreviewSize();
+    });
+    ro.observe(previewInner);
+    ro.observe(previewStage);
+  }
+  window.addEventListener("resize", scheduleApplyPreviewSize);
+  window.addEventListener("orientationchange", function () {
+    setTimeout(scheduleApplyPreviewSize, 250);
+  });
+
+  /* ---------------- Draggable splitter (desktop) ---------------- */
+  var dragging = false;
+
+  function isDesktop() {
+    return window.innerWidth > 860;
+  }
+
+  splitter.addEventListener("pointerdown", function (e) {
+    if (!isDesktop()) return;
+    dragging = true;
+    splitter.classList.add("active");
+    splitter.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  splitter.addEventListener("pointermove", function (e) {
+    if (!dragging) return;
+    var rect = workspace.getBoundingClientRect();
+    var pct = ((e.clientX - rect.left) / rect.width) * 100;
+    pct = Math.min(80, Math.max(20, pct));
+    workspace.style.setProperty("--split", pct.toFixed(2));
+    scheduleApplyPreviewSize();
+  });
+
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    splitter.classList.remove("active");
+    if (e && e.pointerId !== undefined && splitter.hasPointerCapture &&
+        splitter.hasPointerCapture(e.pointerId)) {
+      splitter.releasePointerCapture(e.pointerId);
+    }
+  }
+
+  splitter.addEventListener("pointerup", endDrag);
+  splitter.addEventListener("pointercancel", endDrag);
+  window.addEventListener("blur", endDrag);
+
+  /* ---------------- Instagram confirmation modal ---------------- */
+  var lastFocused = null;
+  var closeTimer = null;
+
+  function openModal() {
+    lastFocused = document.activeElement;
+    clearTimeout(closeTimer);
+    backdrop.hidden = false;
+    requestAnimationFrame(function () {
+      backdrop.classList.add("show");
+    });
+    document.body.style.overflow = "hidden";
+    modalConfirm.focus();
+  }
+
+  function closeModal() {
+    backdrop.classList.remove("show");
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(function () { backdrop.hidden = true; }, 200);
+    document.body.style.overflow = "";
+    if (lastFocused && typeof lastFocused.focus === "function") {
+      lastFocused.focus();
+    }
+  }
+
+  igLink.addEventListener("click", function (e) {
+    e.preventDefault();
+    openModal();
+  });
+
+  modalCancel.addEventListener("click", closeModal);
+
+  modalConfirm.addEventListener("click", function () {
+    setTimeout(closeModal, 60);
+  });
+
+  backdrop.addEventListener("click", function (e) {
+    if (e.target === backdrop) closeModal();
+  });
+
+  backdrop.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+      return;
+    }
+    if (e.key === "Tab") {
+      var focusables = [modalCancel, modalConfirm];
+      var idx = focusables.indexOf(document.activeElement);
+      if (e.shiftKey) {
+        if (idx <= 0) { e.preventDefault(); modalConfirm.focus(); }
+      } else {
+        if (idx === -1 || idx === focusables.length - 1) {
+          e.preventDefault();
+          modalCancel.focus();
+        }
+      }
+    }
+  });
+
+  /* ---------------- Boot ---------------- */
+  editor.value = DEFAULT_CODE;
+
+  // Restore last chosen preview mode (if any) before the first paint
+  var initialMode = loadSavedMode();
+  setMode(initialMode);
+
+  refresh();
+  scheduleApplyPreviewSize();
+
+  // Second pass after layout settles (fonts, scrollbars, etc.)
+  setTimeout(scheduleApplyPreviewSize, 60);
+  setTimeout(scheduleApplyPreviewSize, 250);
+})();
+</script>
+</body>
+</html>
